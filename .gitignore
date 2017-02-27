@@ -1,0 +1,48 @@
+
+# generic
+*.tmp
+*.swp
+*.pyc
+*.pyo
+*.bak
+*.egg-info
+*.EGG-INFO
+.coverage
+.settings
+.idea
+
+# eclipse
+.project
+.pydevproject
+
+# setuptools
+bin/
+build/
+dist/
+
+# buildout
+.installed*.cfg
+.cache
+.cache/
+eggs
+eggs/
+develop-eggs/
+parts
+parts/
+
+# scm
+.bzr/
+.svn/
+.hg/
+
+# msi-related
+parts/wix
+parts/product*
+parts/*.wixpdb
+parts/*.msi
+
+.codeintel
+*sublime*
+
+tmp*
+!tmp*py
