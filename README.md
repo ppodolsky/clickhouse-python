@@ -67,8 +67,8 @@ Hosts with priority 2 will be involved in action only if _all_ hosts with priori
 Assuming there are two data centers DC-1 and DC-2 and code is running on a host in DC-1
 ```python
 topology = {
-    1: ['clickhouse-instance-1.dc-1.net', 'clickhouse-instance-2.dc-1.net'],
-    2: ['clickhouse-instance-1.dc-2.net', 'clickhouse-instance-2.dc-2.net'],
+    1: ['clickhouse-instance-1.dc-1.net:8123', 'clickhouse-instance-2.dc-1.net:8123'],
+    2: ['clickhouse-instance-1.dc-2.net:8123', 'clickhouse-instance-2.dc-2.net:8123'],
 }
 ```
 There is a helper to produce topology in the required format from a more human readable format. Code below produces the same result as above:
@@ -76,15 +76,15 @@ There is a helper to produce topology in the required format from a more human r
 from clickhouse.utils import derive_relative_topology
 topology = derive_relative_topology(
     {
-        'dc-1': ['clickhouse-instance-1.dc-1.net', 'clickhouse-instance-2.dc-1.net'],
-        'dc-2': ['clickhouse-instance-1.dc-2.net', 'clickhouse-instance-2.dc-2.net'],
+        'dc-1': ['clickhouse-instance-1.dc-1.net:8123', 'clickhouse-instance-2.dc-1.net:8123'],
+        'dc-2': ['clickhouse-instance-1.dc-2.net:8123', 'clickhouse-instance-2.dc-2.net:8123'],
     },
     your_dc='dc-1',
 )
 ```
 #### Priority list
 ```python
-topology = ['clickhouse-instance-1.net', 'clickhouse-instance-2.net'],
+topology = ['clickhouse-instance-1.net', 'clickhouse-instance-2.net']
 ```
 #### Random of two
 ```python

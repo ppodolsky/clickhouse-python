@@ -149,7 +149,7 @@ class Database(object):
                 error_log.error(
                     'Error while requesting to %s: %s',
                     target_host,
-                    ex.message,
+                    str(ex),
                 )
                 if ensure:
                     raise ex
