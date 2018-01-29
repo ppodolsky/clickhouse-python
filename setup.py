@@ -8,15 +8,14 @@ from setuptools import (
 
 if __name__ == '__main__':
     setup(
-        name='{{package-name}}',
-        version='{{version}}',
+        name='clickhouse',
+        version='0.1.7',
         author='ppodolsky',
         author_email='ppodolsky@yandex-team.ru',
 
         url='https://github.com/ppodolsky/clickhouse-python',
         description="""A Python library for working with the ClickHouse database""",
 
-        # http://pypi.python.org/pypi?%3Aaction=list_classifiers
         classifiers=[
             "Intended Audience :: Developers",
             "Intended Audience :: System Administrators",
