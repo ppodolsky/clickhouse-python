@@ -301,3 +301,22 @@ class ArrayField(Field):
 
     def get_sql(self, with_default=True):
         return 'Array(%s)' % self.inner_field.get_sql(with_default=False)
+
+
+class FixedStringField(StringField):
+    db_type = 'FixedString'
+
+    def __init__(self, width, default=None, alias=None):
+        super(FixedStringField, self).__init__(default, alias)
+        self.width = width
+
+    def get_sql(self, with_default=True):
+        '''
+        Returns an SQL expression describing the field (e.g. for CREATE TABLE).
+        '''
+        sql = '%s(%s)' % (self.db_type, self.width)
+        if with_default:
+            sql += ' DEFAULT %s' % self.to_db_string(self.default)
+        if self.alias:
+            sql += ' ALIAS %s' % self.to_db_string(self.alias)
+        return sql
