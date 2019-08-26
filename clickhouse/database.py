@@ -118,7 +118,7 @@ class Database(object):
                 error_log.error(
                     'Error while requesting to %s: %s',
                     target_host,
-                    ex.message,
+                    ex,
                 )
                 bo = self._backoff(target_host)
                 self._host_manager.cooldown(target_host, bo)
