@@ -196,7 +196,7 @@ the repository.
 
 ## Publishing releases
 
-The [Publish workflow](https://github.com/ppodolsky/clickhouse-python/actions/workflows/publish.yml)
+The [Publish workflow](https://github.com/SpaceFrontiers/clickhouse-python/actions/workflows/publish.yml)
 runs when a `v*` tag is pushed. It checks that the tag matches the version in
 `pyproject.toml` and points to a commit already on `master`, runs the full CI
 suite, then publishes the tested wheel and source distribution to PyPI. After a
@@ -222,6 +222,6 @@ which only allows deployments from `v*` tags. Build and test jobs do not receive
 that secret. Rotate the secret there when replacing the PyPI token.
 
 Python packages are listed on [PyPI](https://pypi.org/project/clickhouse/) and the
-[GitHub Releases page](https://github.com/ppodolsky/clickhouse-python/releases).
+[GitHub Releases page](https://github.com/SpaceFrontiers/clickhouse-python/releases).
 They do not appear in GitHub's **Packages** section because
 [GitHub Packages does not support Python/PyPI registries](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#support-for-package-registries).
