@@ -46,3 +46,12 @@ parts/*.msi
 
 tmp*
 !tmp*py
+
+# Local development
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+coverage.xml
+.context/

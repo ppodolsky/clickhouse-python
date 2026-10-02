@@ -2,13 +2,11 @@ import datetime
 import time
 
 import pytz
-from six import binary_type, string_types, text_type
 
 from .utils import escape, parse_array
 
 
-class Field(object):
-
+class Field:
     creation_counter = 0
     class_default = 0
     db_type = None
@@ -20,44 +18,40 @@ class Field(object):
         self.alias = alias
 
     def to_python(self, value):
-        '''
+        """
         Converts the input value into the expected Python data type, raising ValueError if the
         data can't be converted. Returns the converted value. Subclasses should override this.
-        '''
+        """
         return value
 
     def validate(self, value):
-        '''
+        """
         Called after to_python to validate that the value is suitable for the field's database type.
         Subclasses should override this.
-        '''
+        """
         pass
 
     def _range_check(self, value, min_value, max_value):
-        '''
+        """
         Utility method to check that the given value is between min_value and max_value.
-        '''
+        """
         if value < min_value or value > max_value:
             raise ValueError(
-                '%s out of range - %s is not between %s and %s' % (
-                    self.__class__.__name__,
-                    value,
-                    min_value,
-                    max_value
-                )
+                '%s out of range - %s is not between %s and %s'
+                % (self.__class__.__name__, value, min_value, max_value)
             )
 
     def to_db_string(self, value, quote=True):
-        '''
+        """
         Returns the field's value prepared for writing to the database.
         When quote is true, strings are surrounded by single quotes.
-        '''
+        """
         return escape(value, quote)
 
     def get_sql(self, with_default=True):
-        '''
+        """
         Returns an SQL expression describing the field (e.g. for CREATE TABLE).
-        '''
+        """
         sql = self.db_type
         if with_default:
             sql += ' DEFAULT %s' % self.to_db_string(self.default)
@@ -67,20 +61,18 @@ class Field(object):
 
 
 class StringField(Field):
-
     class_default = ''
     db_type = 'String'
 
     def to_python(self, value):
-        if isinstance(value, text_type):
+        if isinstance(value, str):
             return value
-        if isinstance(value, binary_type):
+        if isinstance(value, bytes):
             return value.decode('UTF-8')
         raise ValueError('Invalid value for %s: %r' % (self.__class__.__name__, value))
 
 
 class DateField(Field):
-
     min_value = datetime.date(1970, 1, 1)
     max_value = datetime.date(2038, 1, 19)
     class_default = min_value
@@ -91,7 +83,7 @@ class DateField(Field):
             return value
         if isinstance(value, int):
             return DateField.class_default + datetime.timedelta(days=value)
-        if isinstance(value, string_types):
+        if isinstance(value, str):
             if value == '0000-00-00':
                 return DateField.min_value
             return datetime.datetime.strptime(value, '%Y-%m-%d').date()
@@ -105,7 +97,6 @@ class DateField(Field):
 
 
 class DateTimeField(Field):
-
     class_default = datetime.datetime.fromtimestamp(0, pytz.utc)
     db_type = 'DateTime'
 
@@ -116,7 +107,7 @@ class DateTimeField(Field):
             return datetime.datetime(value.year, value.month, value.day)
         if isinstance(value, int):
             return datetime.datetime.fromtimestamp(value, pytz.utc)
-        if isinstance(value, string_types):
+        if isinstance(value, str):
             return datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
         raise ValueError('Invalid value for %s - %r' % (self.__class__.__name__, value))
 
@@ -125,11 +116,10 @@ class DateTimeField(Field):
 
 
 class BaseIntField(Field):
-
     def to_python(self, value):
         try:
             return int(value)
-        except:
+        except (TypeError, ValueError, OverflowError):
             raise ValueError('Invalid value for %s - %r' % (self.__class__.__name__, value))
 
     def validate(self, value):
@@ -137,95 +127,83 @@ class BaseIntField(Field):
 
 
 class UInt8Field(BaseIntField):
-
     min_value = 0
     max_value = 2**8 - 1
     db_type = 'UInt8'
 
 
 class UInt16Field(BaseIntField):
-
     min_value = 0
     max_value = 2**16 - 1
     db_type = 'UInt16'
 
 
 class UInt32Field(BaseIntField):
-
     min_value = 0
     max_value = 2**32 - 1
     db_type = 'UInt32'
 
 
 class UInt64Field(BaseIntField):
-
     min_value = 0
     max_value = 2**64 - 1
     db_type = 'UInt64'
 
 
 class Int8Field(BaseIntField):
-
-    min_value = -2**7
+    min_value = -(2**7)
     max_value = 2**7 - 1
     db_type = 'Int8'
 
 
 class Int16Field(BaseIntField):
-
-    min_value = -2**15
+    min_value = -(2**15)
     max_value = 2**15 - 1
     db_type = 'Int16'
 
 
 class Int32Field(BaseIntField):
-
-    min_value = -2**31
+    min_value = -(2**31)
     max_value = 2**31 - 1
     db_type = 'Int32'
 
 
 class Int64Field(BaseIntField):
-
-    min_value = -2**63
+    min_value = -(2**63)
     max_value = 2**63 - 1
     db_type = 'Int64'
 
 
 class BaseFloatField(Field):
-
     def to_python(self, value):
         try:
             return float(value)
-        except:
+        except (TypeError, ValueError, OverflowError):
             raise ValueError('Invalid value for %s - %r' % (self.__class__.__name__, value))
 
 
 class Float32Field(BaseFloatField):
-
     db_type = 'Float32'
 
 
 class Float64Field(BaseFloatField):
-
     db_type = 'Float64'
 
 
 class BaseEnumField(Field):
-
     def __init__(self, enum_cls, default=None):
         self.enum_cls = enum_cls
         if default is None:
             default = list(enum_cls)[0]
-        super(BaseEnumField, self).__init__(default)
+        super().__init__(default)
 
     def to_python(self, value):
         if isinstance(value, self.enum_cls):
             return value
         try:
-            if isinstance(value, text_type):
+            if isinstance(value, str):
                 return self.enum_cls[value]
-            if isinstance(value, binary_type):
+            if isinstance(value, bytes):
                 return self.enum_cls[value.decode('UTF-8')]
             if isinstance(value, int):
                 return self.enum_cls(value)
@@ -247,17 +225,15 @@ class BaseEnumField(Field):
 
     @classmethod
     def create_ad_hoc_field(cls, db_type):
-        '''
+        """
         Give an SQL column description such as "Enum8('apple' = 1, 'banana' = 2, 'orange' = 3)"
         this method returns a matching enum field.
-        '''
+        """
         import re
-        try:
-            Enum  # exists in Python 3.4+
-        except NameError:
-            from enum import Enum  # use the enum34 library instead
+        from enum import Enum
+
         members = {}
-        for match in re.finditer("'(\w+)' = (\d+)", db_type):
+        for match in re.finditer(r"'(\w+)' = (\d+)", db_type):
             members[match.group(1)] = int(match.group(2))
         enum_cls = Enum('AdHocEnum', members)
         field_class = Enum8Field if db_type.startswith('Enum8') else Enum16Field
@@ -265,27 +241,24 @@ class BaseEnumField(Field):
 
 
 class Enum8Field(BaseEnumField):
-
     db_type = 'Enum8'
 
 
 class Enum16Field(BaseEnumField):
-
     db_type = 'Enum16'
 
 
 class ArrayField(Field):
-
     class_default = []
 
     def __init__(self, inner_field, default=None):
         self.inner_field = inner_field
-        super(ArrayField, self).__init__(default)
+        super().__init__(default)
 
     def to_python(self, value):
-        if isinstance(value, text_type):
+        if isinstance(value, str):
             value = parse_array(value)
-        elif isinstance(value, binary_type):
+        elif isinstance(value, bytes):
             value = parse_array(value.decode('UTF-8'))
         elif not isinstance(value, (list, tuple)):
             raise ValueError('ArrayField expects list or tuple, not %s' % type(value))
@@ -307,13 +280,13 @@ class FixedStringField(StringField):
     db_type = 'FixedString'
 
     def __init__(self, width, default=None, alias=None):
-        super(FixedStringField, self).__init__(default, alias)
+        super().__init__(default, alias)
         self.width = width
 
     def get_sql(self, with_default=True):
-        '''
+        """
         Returns an SQL expression describing the field (e.g. for CREATE TABLE).
-        '''
+        """
         sql = '%s(%s)' % (self.db_type, self.width)
         if with_default:
             sql += ' DEFAULT %s' % self.to_db_string(self.default)

@@ -6,7 +6,6 @@ from clickhouse.models import Model
 
 
 class InheritanceTestCase(unittest.TestCase):
-
     def assertFieldNames(self, model_class, names):
         self.assertEqual(names, [name for name, field in model_class._fields])
 
@@ -32,7 +31,6 @@ class InheritanceTestCase(unittest.TestCase):
 
 
 class ParentModel(Model):
-
     date_field = DateField()
     int_field = Int32Field()
 
@@ -40,10 +38,8 @@ class ParentModel(Model):
 
 
 class Model1(ParentModel):
-
     string_field = StringField()
 
 
 class Model2(ParentModel):
-
     float_field = Float32Field()

@@ -1,27 +1,24 @@
 import unittest
 from datetime import date
 
-from clickhouse.database import Database
+import pytest
+
 from clickhouse.engines import MergeTree
 from clickhouse.fields import ArrayField, DateField, Int32Field, StringField
 from clickhouse.models import Model
 
 
 class ArrayFieldsTest(unittest.TestCase):
+    @property
+    def integration_models(self):
+        return (ModelWithArrays,)
 
-    def setUp(self):
-        self.database = Database('localhost:8123', 'test-db')
-        self.database.create_table(ModelWithArrays)
-
-    def tearDown(self):
-        self.database.drop_database()
-        self.database.close()
-
+    @pytest.mark.integration
     def test_insert_and_select(self):
         instance = ModelWithArrays(
             date_field='2016-08-30',
             arr_str=['goodbye,', 'cruel', 'world', 'special chars: ,"\\\'` \n\t\\[]'],
-            arr_date=['2010-01-01']
+            arr_date=['2010-01-01'],
         )
         self.database.insert([instance])
         query = 'SELECT * from $db.modelwitharrays ORDER BY date_field'
@@ -33,10 +30,7 @@ class ArrayFieldsTest(unittest.TestCase):
             self.assertEqual(results[0].arr_date, instance.arr_date)
 
     def test_conversion(self):
-        instance = ModelWithArrays(
-            arr_int=('1', '2', '3'),
-            arr_date=['2010-01-01']
-        )
+        instance = ModelWithArrays(arr_int=('1', '2', '3'), arr_date=['2010-01-01'])
         self.assertEqual(instance.arr_str, [])
         self.assertEqual(instance.arr_int, [1, 2, 3])
         self.assertEqual(instance.arr_date, [date(2010, 1, 1)])
@@ -49,7 +43,6 @@ class ArrayFieldsTest(unittest.TestCase):
 
 
 class ModelWithArrays(Model):
-
     date_field = DateField()
     arr_str = ArrayField(StringField())
     arr_int = ArrayField(Int32Field())

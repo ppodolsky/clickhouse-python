@@ -1,12 +1,9 @@
-
-class Engine(object):
-
+class Engine:
     def create_table_sql(self):
         raise NotImplementedError()
 
 
 class MergeTree(Engine):
-
     def __init__(
         self,
         date_col,
@@ -22,29 +19,32 @@ class MergeTree(Engine):
         self.index_granularity = index_granularity
         self.replica_table_path = replica_table_path
         self.replica_name = replica_name
-        # TODO verify that both replica fields are either present or missing
+        if bool(replica_table_path) != bool(replica_name):
+            raise ValueError('replica_table_path and replica_name must be supplied together')
 
     def create_table_sql(self):
         name = self.__class__.__name__
         if self.replica_name:
             name = 'Replicated' + name
         params = self._build_sql_params()
-        return '%s(%s)' % (name, ', '.join(params))
+        clauses = [
+            '%s(%s)' % (name, ', '.join(params)),
+            'PARTITION BY toYYYYMM(%s)' % self.date_col,
+            'ORDER BY (%s)' % ', '.join(self.key_cols),
+        ]
+        if self.sampling_expr:
+            clauses.append('SAMPLE BY %s' % self.sampling_expr)
+        clauses.append('SETTINGS index_granularity = %s' % self.index_granularity)
+        return '\n'.join(clauses)
 
     def _build_sql_params(self):
         params = []
         if self.replica_name:
             params += ["'%s'" % self.replica_table_path, "'%s'" % self.replica_name]
-        params.append(self.date_col)
-        if self.sampling_expr:
-            params.append(self.sampling_expr)
-        params.append('(%s)' % ', '.join(self.key_cols))
-        params.append(str(self.index_granularity))
         return params
 
 
 class CollapsingMergeTree(MergeTree):
-
     def __init__(
         self,
         date_col,
@@ -53,26 +53,20 @@ class CollapsingMergeTree(MergeTree):
         sampling_expr=None,
         index_granularity=8192,
         replica_table_path=None,
-        replica_name=None
+        replica_name=None,
     ):
-        super(CollapsingMergeTree, self).__init__(
-            date_col,
-            key_cols,
-            sampling_expr,
-            index_granularity,
-            replica_table_path,
-            replica_name
+        super().__init__(
+            date_col, key_cols, sampling_expr, index_granularity, replica_table_path, replica_name
         )
         self.sign_col = sign_col
 
     def _build_sql_params(self):
-        params = super(CollapsingMergeTree, self)._build_sql_params()
+        params = super()._build_sql_params()
         params.append(self.sign_col)
         return params
 
 
 class SummingMergeTree(MergeTree):
-
     def __init__(
         self,
         date_col,
@@ -81,20 +75,15 @@ class SummingMergeTree(MergeTree):
         sampling_expr=None,
         index_granularity=8192,
         replica_table_path=None,
-        replica_name=None
+        replica_name=None,
     ):
-        super(SummingMergeTree, self).__init__(
-            date_col,
-            key_cols,
-            sampling_expr,
-            index_granularity,
-            replica_table_path,
-            replica_name
+        super().__init__(
+            date_col, key_cols, sampling_expr, index_granularity, replica_table_path, replica_name
         )
         self.summing_cols = summing_cols
 
     def _build_sql_params(self):
-        params = super(SummingMergeTree, self)._build_sql_params()
+        params = super()._build_sql_params()
         if self.summing_cols:
             params.append('(%s)' % ', '.join(self.summing_cols))
         return params
@@ -109,9 +98,9 @@ class ReplacingMergeTree(MergeTree):
         sampling_expr=None,
         index_granularity=8192,
         replica_table_path=None,
-        replica_name=None
+        replica_name=None,
     ):
-        super(ReplacingMergeTree, self).__init__(
+        super().__init__(
             date_col,
             key_cols,
             sampling_expr,
@@ -122,7 +111,7 @@ class ReplacingMergeTree(MergeTree):
         self.version_col = version_col
 
     def _build_sql_params(self):
-        params = super(ReplacingMergeTree, self)._build_sql_params()
+        params = super()._build_sql_params()
         if self.version_col:
             params.append(self.version_col)
         return params

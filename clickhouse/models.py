@@ -1,18 +1,16 @@
-from six import with_metaclass
-
 from .fields import Field
 from .utils import parse_tsv
 
 
 class ModelBase(type):
-    '''
+    """
     A metaclass for ORM models. It adds the _fields list to model classes.
-    '''
+    """
 
     ad_hoc_model_cache = {}
 
     def __new__(cls, name, bases, attrs):
-        new_cls = super(ModelBase, cls).__new__(cls, name, bases, attrs)
+        new_cls = super().__new__(cls, name, bases, attrs)
         # Collect fields from parent classes
         base_fields = []
         for base in bases:
@@ -44,6 +42,7 @@ class ModelBase(type):
     @classmethod
     def create_ad_hoc_field(cls, db_type):
         import clickhouse.fields as orm_fields
+
         # Enums
         if db_type.startswith('Enum'):
             return orm_fields.BaseEnumField.create_ad_hoc_field(db_type)
@@ -58,22 +57,22 @@ class ModelBase(type):
         return getattr(orm_fields, name)()
 
 
-class Model(with_metaclass(ModelBase)):
-    '''
+class Model(metaclass=ModelBase):
+    """
     A base class for ORM models.
-    '''
+    """
 
     engine = None
     _table_name = None
 
     def __init__(self, **kwargs):
-        '''
+        """
         Creates a model instance, using keyword arguments as field values.
         Since values are immediately converted to their Pythonic type,
         invalid values will cause a ValueError to be raised.
         Unrecognized field names will cause an AttributeError.
-        '''
-        super(Model, self).__init__()
+        """
+        super().__init__()
         # Assign field values from keyword arguments
         for name, value in kwargs.items():
             field = self.get_field(name)
@@ -89,35 +88,35 @@ class Model(with_metaclass(ModelBase)):
                 setattr(self, name, field.default)
 
     def __setattr__(self, name, value):
-        '''
+        """
         When setting a field value, converts the value to its Pythonic type and validates it.
         This may raise a ValueError.
-        '''
+        """
         field = self.get_field(name)
         if field:
             value = field.to_python(value)
             field.validate(value)
-        super(Model, self).__setattr__(name, value)
+        super().__setattr__(name, value)
 
     def get_field(self, name):
-        '''
+        """
         Get a Field instance given its name, or None if not found.
-        '''
+        """
         field = getattr(self.__class__, name, None)
         return field if isinstance(field, Field) else None
 
     @classmethod
     def table_name(cls):
-        '''
+        """
         Returns the model's database table name.
-        '''
+        """
         return cls._table_name or cls.__name__.lower()
 
     @classmethod
     def create_table_sql(cls, db_name):
-        '''
+        """
         Returns the SQL command for creating a table for this model.
-        '''
+        """
         parts = ['CREATE TABLE IF NOT EXISTS `%s`.`%s` (' % (db_name, cls.table_name())]
         cols = []
         for name, field in cls._fields:
@@ -129,22 +128,21 @@ class Model(with_metaclass(ModelBase)):
 
     @classmethod
     def drop_table_sql(cls, db_name):
-        '''
+        """
         Returns the SQL command for deleting this model's table.
-        '''
+        """
         return 'DROP TABLE IF EXISTS `%s`.`%s`' % (db_name, cls.table_name())
 
     @classmethod
     def from_tsv(cls, line, field_names=None):
-        '''
+        """
         Create a model instance from a tab-separated line.
         The line may or may not include a newline.
         The field_names list must match the fields defined in the model,
         but does not have to include all of them.
         If omitted, it is assumed to be the names of all fields in the model,
         in order of definition.
-        '''
-        from six import next
+        """
         field_names = field_names or [name for name, field in cls._fields]
         values = iter(parse_tsv(line))
         kwargs = {}
@@ -153,9 +151,9 @@ class Model(with_metaclass(ModelBase)):
         return cls(**kwargs)
 
     def to_tsv(self):
-        '''
+        """
         Returns the instance's column values as a tab-separated line. A newline is not included.
-        '''
+        """
         parts = []
         for name, field in self._fields:
             value = field.to_db_string(getattr(self, name), quote=False)

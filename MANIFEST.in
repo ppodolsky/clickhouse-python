@@ -1,0 +1,2 @@
+include .python-version
+recursive-include tests *.py

@@ -1,43 +1,43 @@
 import unittest
+from enum import Enum
 
-from clickhouse.database import Database
+import pytest
+
 from clickhouse.engines import MergeTree
 from clickhouse.fields import ArrayField, DateField, Enum8Field, Enum16Field
 from clickhouse.models import Model
 
-try:
-    Enum  # exists in Python 3.4+
-except NameError:
-    from enum import Enum  # use the enum34 library instead
-
 
 class EnumFieldsTest(unittest.TestCase):
+    @property
+    def integration_models(self):
+        return (
+            ModelWithEnum,
+            ModelWithEnumArray,
+        )
 
-    def setUp(self):
-        self.database = Database('localhost:8123', 'test-db')
-        self.database.create_table(ModelWithEnum)
-        self.database.create_table(ModelWithEnumArray)
-
-    def tearDown(self):
-        self.database.drop_database()
-        self.database.close()
-
+    @pytest.mark.integration
     def test_insert_and_select(self):
-        self.database.insert([
-            ModelWithEnum(date_field='2016-08-30', enum_field=Fruit.apple),
-            ModelWithEnum(date_field='2016-08-31', enum_field=Fruit.orange)
-        ])
+        self.database.insert(
+            [
+                ModelWithEnum(date_field='2016-08-30', enum_field=Fruit.apple),
+                ModelWithEnum(date_field='2016-08-31', enum_field=Fruit.orange),
+            ]
+        )
         query = 'SELECT * from $table ORDER BY date_field'
         results = list(self.database.select(query, ModelWithEnum))
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].enum_field, Fruit.apple)
         self.assertEqual(results[1].enum_field, Fruit.orange)
 
+    @pytest.mark.integration
     def test_ad_hoc_model(self):
-        self.database.insert([
-            ModelWithEnum(date_field='2016-08-30', enum_field=Fruit.apple),
-            ModelWithEnum(date_field='2016-08-31', enum_field=Fruit.orange)
-        ])
+        self.database.insert(
+            [
+                ModelWithEnum(date_field='2016-08-30', enum_field=Fruit.apple),
+                ModelWithEnum(date_field='2016-08-31', enum_field=Fruit.orange),
+            ]
+        )
         query = 'SELECT * from $db.modelwithenum ORDER BY date_field'
         results = list(self.database.select(query))
         self.assertEqual(len(results), 2)
@@ -60,10 +60,10 @@ class EnumFieldsTest(unittest.TestCase):
         instance = ModelWithEnum()
         self.assertEqual(instance.enum_field, Fruit.apple)
 
+    @pytest.mark.integration
     def test_enum_array(self):
         instance = ModelWithEnumArray(
-            date_field='2016-08-30',
-            enum_array=[Fruit.apple, Fruit.apple, Fruit.orange]
+            date_field='2016-08-30', enum_array=[Fruit.apple, Fruit.apple, Fruit.orange]
         )
         self.database.insert([instance])
         query = 'SELECT * from $table ORDER BY date_field'
@@ -72,11 +72,10 @@ class EnumFieldsTest(unittest.TestCase):
         self.assertEqual(results[0].enum_array, instance.enum_array)
 
 
-Fruit = Enum('Fruit', u'apple banana orange')
+Fruit = Enum('Fruit', 'apple banana orange')
 
 
 class ModelWithEnum(Model):
-
     date_field = DateField()
     enum_field = Enum8Field(Fruit)
 
@@ -84,7 +83,6 @@ class ModelWithEnum(Model):
 
 
 class ModelWithEnumArray(Model):
-
     date_field = DateField()
     enum_array = ArrayField(Enum16Field(Fruit))
 

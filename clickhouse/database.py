@@ -1,16 +1,12 @@
-# flake8: noqa
 import logging
-import types
 from collections import namedtuple
 from string import Template
 from threading import Lock
 
 import requests
-from izihawa_commons.schedule.backoff import ExponentialBackoff
-from izihawa_commons.schedule.host_manager import NoAvailableHostsException
-from izihawa_commons.schedule.host_manager import HostManager
-from six import PY3, string_types
 
+from ._scheduling import ExponentialBackoff, HostManager
+from ._scheduling import NoAvailableHostsException as NoAvailableHostsException
 from .models import ModelBase
 from .utils import parse_tsv, prepend_if_not
 
@@ -28,20 +24,20 @@ class InconsistentConfig(DatabaseException):
 error_log = logging.getLogger('clickhouse.error')
 
 
-class Database(object):
+class Database:
     def __init__(
-            self,
-            topology,
-            database_name,
-            username=None,
-            password=None,
-            retries_per_host=2,
-            backoff=None,
-            buffer_size=0,
-            timeout=None,
-            requests_config=None,
-            wait_for_databases_init_time=300,
-            threaded=False,
+        self,
+        topology,
+        database_name,
+        username=None,
+        password=None,
+        retries_per_host=2,
+        backoff=None,
+        buffer_size=0,
+        timeout=None,
+        requests_config=None,
+        wait_for_databases_init_time=300,
+        threaded=False,
     ):
         self._host_manager = HostManager(threaded=threaded)
         self._topology = topology
@@ -67,12 +63,10 @@ class Database(object):
         self._load_hosts(self._topology)
 
         self._requests_pool_connections = self._requests_config.get(
-            'pool_connections',
-            len(self._host_manager.hosts_set())
+            'pool_connections', len(self._host_manager.hosts_set())
         )
         self._requests_pool_maxsize = self._requests_config.get(
-            'pool_maxsize',
-            len(self._host_manager.hosts_set())
+            'pool_maxsize', len(self._host_manager.hosts_set())
         )
 
         self._requests_session = requests.Session()
@@ -91,13 +85,13 @@ class Database(object):
         self.create_database(timeout=wait_for_databases_init_time)
 
     def query(
-            self,
-            query,
-            stream_response=False,
-            timeout=None,
+        self,
+        query,
+        stream_response=False,
+        timeout=None,
     ):
         timeout = timeout or self._timeout
-        if PY3 and isinstance(query, string_types):
+        if isinstance(query, str):
             query = query.encode('utf-8')
         while True:
             target_host = self._host_manager.get()
@@ -184,27 +178,23 @@ class Database(object):
     def _send_instances(self, model_class, instances):
         if instances and len(instances) > 0:
             query = [
-                self._substitute(
-                    'INSERT INTO $table FORMAT TabSeparated',
-                    model_class
-                ).encode('utf-8')
+                self._substitute('INSERT INTO $table FORMAT TabSeparated', model_class).encode(
+                    'utf-8'
+                )
             ]
             for instance in instances:
                 query.append(instance.to_tsv().encode('utf-8'))
-            r = self.query('\n'.encode('utf-8').join(query))
+            r = self.query(b'\n'.join(query))
             r.close()
 
     def _substitute(self, query, model_class=None):
-        '''
+        """
         Replaces $db and $table placeholders in the query.
-        '''
+        """
         if '$' in query:
-            mapping = dict(db="`%s`" % self._database_name)
+            mapping = dict(db='`%s`' % self._database_name)
             if model_class:
-                mapping['table'] = "`%s`.`%s`" % (
-                    self._database_name,
-                    model_class.table_name()
-                )
+                mapping['table'] = '`%s`.`%s`' % (self._database_name, model_class.table_name())
             query = Template(query).substitute(mapping)
         return query
 
@@ -237,8 +227,7 @@ class Database(object):
         )
 
     def insert(self, model_instances):
-        if isinstance(model_instances, types.GeneratorType):
-            model_instances = list(model_instances)
+        model_instances = list(model_instances)
         if len(model_instances) == 0:
             return
         model_class = model_instances[0].__class__

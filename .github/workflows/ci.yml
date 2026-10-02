@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:25.8
+        env:
+          CLICKHOUSE_USER: test
+          CLICKHOUSE_PASSWORD: test
+          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "clickhouse-client --user test --password test --query 'SELECT 1'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m pytest --run-integration
+        env:
+          CLICKHOUSE_USER: test
+          CLICKHOUSE_PASSWORD: test
+
+  quality-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - name: Test the installed wheel outside the source tree
+        run: |
+          python -m venv /tmp/wheel-test
+          /tmp/wheel-test/bin/python -m pip install dist/*.whl pytest
+          cp -r tests /tmp/wheel-test/tests
+          cp pyproject.toml /tmp/wheel-test/
+          cd /tmp/wheel-test
+          bin/python -m pytest tests -m 'not integration'

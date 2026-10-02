@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clickhouse"
+version = "0.2.0"
+description = "A Python library for working with the ClickHouse database"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "PSF-2.0"
+authors = [{name = "ppodolsky", email = "ppodolsky@yandex-team.ru"}]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+]
+dependencies = ["pytz>=2024.1", "requests>=2.32.3"]
+
+[project.urls]
+Homepage = "https://github.com/ppodolsky/clickhouse-python"
+Issues = "https://github.com/ppodolsky/clickhouse-python/issues"
+
+[project.optional-dependencies]
+dev = ["build>=1.2.2", "pytest>=8.3", "ruff>=0.11", "twine>=6.1"]
+
+[tool.setuptools.packages.find]
+include = ["clickhouse*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["integration: requires a running ClickHouse server (enable with --run-integration)"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+ignore = ["UP031"]  # Preserve existing SQL and error-message formatting.
+
+[tool.ruff.format]
+quote-style = "single"

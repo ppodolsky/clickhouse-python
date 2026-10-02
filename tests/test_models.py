@@ -2,14 +2,13 @@ import datetime
 import unittest
 
 import pytz
+
 from clickhouse.engines import MergeTree
-from clickhouse.fields import (DateField, DateTimeField, Float32Field,
-                               Int32Field, StringField)
+from clickhouse.fields import DateField, DateTimeField, Float32Field, Int32Field, StringField
 from clickhouse.models import Model
 
 
 class ModelTestCase(unittest.TestCase):
-
     def test_defaults(self):
         # Check that all fields have their explicit or implicit defaults
         instance = SimpleModel()
@@ -26,7 +25,7 @@ class ModelTestCase(unittest.TestCase):
             datetime_field=datetime.datetime(2000, 5, 24, 10, 22, tzinfo=pytz.utc),
             str_field='aloha',
             int_field=-50,
-            float_field=3.14
+            float_field=3.14,
         )
         instance = SimpleModel(**kwargs)
         for name, value in kwargs.items():
@@ -58,7 +57,6 @@ class ModelTestCase(unittest.TestCase):
 
 
 class SimpleModel(Model):
-
     date_field = DateField()
     datetime_field = DateTimeField()
     str_field = StringField(default='dozo')
