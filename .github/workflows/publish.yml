@@ -1,0 +1,87 @@
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Validate release tag and source
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+          ref = os.environ['RELEASE_REF']
+          if ref.startswith('refs/tags/'):
+              expected = f'refs/tags/v{version}'
+              if ref != expected:
+                  raise SystemExit(f'Tag {ref} does not match package version {version}')
+          else:
+              print(f'Dry run for {version}: branch runs never publish')
+          PY
+          git fetch origin master
+          git merge-base --is-ancestor HEAD origin/master
+
+  ci:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+
+  pypi:
+    needs: ci
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/clickhouse/
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          attestations: false
+
+  github-release:
+    needs: pypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist/
+      - name: Create GitHub Release with package files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --generate-notes

@@ -193,3 +193,35 @@ python -m twine check --strict dist/*
 CI runs the complete suite on Python 3.11, 3.12, 3.13, and 3.14, checks lint and
 formatting, validates distributions, and tests a clean wheel installation outside
 the repository.
+
+## Publishing releases
+
+The [Publish workflow](https://github.com/ppodolsky/clickhouse-python/actions/workflows/publish.yml)
+runs when a `v*` tag is pushed. It checks that the tag matches the version in
+`pyproject.toml` and points to a commit already on `master`, runs the full CI
+suite, then publishes the tested wheel and source distribution to PyPI. After a
+successful upload it creates a GitHub Release containing those same files.
+
+For the next release, update the version and installation example, commit and
+push the changes to `master`, then tag that commit. For example, for 0.2.1:
+
+```bash
+git tag -a v0.2.1 -m 'Release 0.2.1'
+git push origin v0.2.1
+```
+
+Running **Actions → Publish → Run workflow** on `master` performs validation,
+tests, and a build without publishing. Package files are available in the run's
+`python-distributions` artifact. Running it on a release tag publishes that
+version. PyPI versions are immutable: use a new version for changed packages.
+If publishing succeeds but GitHub Release creation fails, rerun only the failed
+job to avoid attempting to upload the same version again.
+
+Publishing uses the `PYPI_API_TOKEN` secret in the repository's `pypi` environment,
+which only allows deployments from `v*` tags. Build and test jobs do not receive
+that secret. Rotate the secret there when replacing the PyPI token.
+
+Python packages are listed on [PyPI](https://pypi.org/project/clickhouse/) and the
+[GitHub Releases page](https://github.com/ppodolsky/clickhouse-python/releases).
+They do not appear in GitHub's **Packages** section because
+[GitHub Packages does not support Python/PyPI registries](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#support-for-package-registries).

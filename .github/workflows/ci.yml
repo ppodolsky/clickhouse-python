@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
+    branches: ['**']
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -63,3 +65,10 @@ jobs:
           cp pyproject.toml /tmp/wheel-test/
           cd /tmp/wheel-test
           bin/python -m pytest tests -m 'not integration'
+      - name: Save validated distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
