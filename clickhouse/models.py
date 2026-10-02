@@ -90,12 +90,15 @@ class Model(metaclass=ModelBase):
     def __setattr__(self, name, value):
         """
         When setting a field value, converts the value to its Pythonic type and validates it.
-        This may raise a ValueError.
+        Raises ValueError with the model and field name if conversion or validation fails.
         """
         field = self.get_field(name)
         if field:
-            value = field.to_python(value)
-            field.validate(value)
+            try:
+                value = field.to_python(value)
+                field.validate(value)
+            except ValueError as exc:
+                raise ValueError(f'{type(self).__name__}.{name}: {exc}') from exc
         super().__setattr__(name, value)
 
     def get_field(self, name):
